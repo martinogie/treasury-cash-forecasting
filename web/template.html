@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Treasury Cash Forecast</title>
+<meta name="description" content="A 13-week daily cash forecast for a card-payments business, with stress scenarios and a backtest of four forecasting methods.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Instrument+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a treasury desk sheet. Levers on the left of the chart, the 13-week table below, the model evidence last. */
+:root{--bg:#F4F3EE;--paper:#FFFFFF;--ink:#191B1A;--muted:#5D625E;--line:#D9DAD3;--accent:#1F7A5A;--band:rgba(31,122,90,.16);
+  --warn:#B4372E;--hist:#191B1A;--buffer:#B4372E;
+  --display:"Instrument Serif",Georgia,serif;--body:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;--mono:"IBM Plex Mono",ui-monospace,Menlo,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121413;--paper:#1A1D1B;--ink:#E9EBE6;--muted:#9EA59F;--line:#2F3431;--accent:#5CC497;--band:rgba(92,196,151,.18);--warn:#EE7B6E;--hist:#E9EBE6;--buffer:#EE7B6E;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#121413;--paper:#1A1D1B;--ink:#E9EBE6;--muted:#9EA59F;--line:#2F3431;--accent:#5CC497;--band:rgba(92,196,151,.18);--warn:#EE7B6E;--hist:#E9EBE6;--buffer:#EE7B6E;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 var(--body)}
+.wrap{max-width:980px;margin:0 auto;padding-inline:16px;padding-block:36px 56px}
+.eyebrow{font:12px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+h1{font:400 clamp(36px,6vw,54px)/1.02 var(--display);margin:6px 0 12px;text-wrap:balance}
+h2{font:400 28px/1.15 var(--display);margin:0 0 8px}
+p{max-width:70ch;margin:0 0 12px}
+.lede{color:var(--muted)}
+.links{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0 24px}
+.links a{font:600 14px var(--body);color:var(--ink);text-decoration:none;border:1px solid var(--line);background:var(--paper);padding:8px 14px;border-radius:999px}
+.links a:hover,.links a:focus-visible{border-color:var(--accent);outline:none}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:18px}
+.kpi{background:var(--paper);padding:14px 16px}
+.kpi .k{font:12px var(--mono);text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.kpi .v{font:500 24px var(--mono);font-variant-numeric:tabular-nums;margin-top:2px}
+.kpi .s{font-size:13px;color:var(--muted)}
+.kpi.bad .v{color:var(--warn)}
+.desk{display:grid;grid-template-columns:270px minmax(0,1fr);gap:18px;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:18px}
+.levers{display:flex;flex-direction:column;gap:16px}
+.lever label{display:flex;justify-content:space-between;gap:8px;font-weight:600;font-size:14px}
+.lever output{font:500 14px var(--mono);font-variant-numeric:tabular-nums}
+.lever input[type=range]{width:100%;accent-color:var(--accent)}
+.lever .hint{font-size:12px;color:var(--muted);line-height:1.4}
+.lever select{font:14px var(--body);background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:4px 6px}
+button{font:600 13px var(--body);color:var(--ink);background:transparent;border:1px solid var(--line);border-radius:999px;padding:7px 14px;cursor:pointer;align-self:flex-start}
+button:hover,button:focus-visible{border-color:var(--accent);outline:none}
+.status{font-size:14px;border-left:3px solid var(--accent);padding:6px 10px;margin:0 0 6px}
+.status.bad{border-color:var(--warn)}
+.chartbox{position:relative;min-width:0}
+svg{width:100%;height:auto;display:block}
+svg .grid{stroke:var(--line)} svg .tick{fill:var(--muted);font:11px var(--mono)}
+.tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--bg);font:12px var(--mono);padding:6px 8px;border-radius:6px;white-space:nowrap;opacity:0;transition:opacity .1s}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:13px;color:var(--muted);margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;vertical-align:middle;margin-right:6px;border-radius:2px}
+.tablewrap{overflow-x:auto;margin-top:12px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:right;padding:8px 8px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{font:500 11px var(--mono);text-transform:uppercase;color:var(--muted)} td{font-family:var(--mono)}
+tr.breach td{color:var(--warn)}
+td.best{font-weight:600;color:var(--accent)}
+section{border-top:1px solid var(--line);padding-top:24px;margin-top:30px}
+ul{padding-left:20px;margin:0;max-width:70ch} li{margin-bottom:6px}
+.note{font-size:14px;color:var(--muted)}
+@media (max-width:760px){.desk{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">Treasury · 13-week cash forecast</div>
+  <h1>Treasury Cash Forecast</h1>
+  <p class="lede">Daily cash position for a card-payments business over the next 13 weeks, built from the drivers that move cash: card volume, settlement timing, merchant payout schedules, payroll, vendor runs and taxes. Move the levers to stress it.</p>
+  <div class="links"><a href="https://github.com/martinogie/treasury-cash-forecasting">Source code on GitHub</a><a href="https://martinogie.github.io/transaction-fraud-detection/">Fraud Alert Budget Explorer</a><a href="https://martinogie.github.io/credit-risk-scoring/">Loan Scorecard Studio</a><a href="https://martinogie.github.io/merchant-churn-prediction/">Merchant Churn Study</a></div>
+
+  <div class="kpis" aria-live="polite">
+    <div class="kpi"><div class="k">Opening balance</div><div class="v" id="k-open"></div><div class="s" id="k-open-s"></div></div>
+    <div class="kpi" id="kpi-low"><div class="k">Lowest forecast</div><div class="v" id="k-low"></div><div class="s" id="k-low-s"></div></div>
+    <div class="kpi" id="kpi-p10"><div class="k">Lowest P10</div><div class="v" id="k-p10"></div><div class="s" id="k-p10-s"></div></div>
+    <div class="kpi"><div class="k">Week-13 balance</div><div class="v" id="k-end"></div><div class="s" id="k-end-s"></div></div>
+  </div>
+
+  <div class="desk">
+    <div class="levers">
+      <div class="lever"><label for="vol">Card volume change <output id="vol-o" for="vol"></output></label>
+        <input type="range" id="vol" min="-30" max="20" step="1" value="0">
+        <div class="hint">Applies to all volume after today. Receipts and merchant payouts both move, but payouts lag.</div></div>
+      <div class="lever"><label for="cb">Chargeback rate <output id="cb-o" for="cb"></output></label>
+        <input type="range" id="cb" min="0.1" max="1.5" step="0.05" value="0.2">
+        <div class="hint">Share of settled volume charged back three days later.</div></div>
+      <div class="lever"><label for="adhoc">Unplanned payment <output id="adhoc-o" for="adhoc"></output></label>
+        <input type="range" id="adhoc" min="0" max="40" step="1" value="0">
+        <div class="hint">Paid on the first business day of week <select id="adhoc-w" aria-label="Week of unplanned payment"></select></div></div>
+      <div class="lever"><label for="buf">Minimum cash buffer <output id="buf-o" for="buf"></output></label>
+        <input type="range" id="buf" min="60" max="120" step="1" value="95">
+        <div class="hint">Policy floor. P10 days below it are flagged.</div></div>
+      <button type="button" id="reset">Reset to base case</button>
+    </div>
+    <div class="chartbox">
+      <p class="status" id="status"></p>
+      <svg id="chart" viewBox="0 0 680 330" role="img" aria-label="Daily cash balance: recent actuals and 13-week forecast with P10 to P90 band"></svg>
+      <div class="tip" id="tip"></div>
+      <div class="legend"><span><i style="background:var(--hist)"></i>Actual</span><span><i style="background:var(--accent)"></i>Forecast</span><span><i style="background:var(--band);height:10px"></i>P10–P90</span><span><i style="background:var(--buffer)"></i>Buffer</span></div>
+    </div>
+  </div>
+
+  <div class="tablewrap">
+    <table id="weekly"><thead><tr><th>Week ending</th><th>Receipts</th><th>Merchant payouts</th><th>Payroll</th><th>Other out</th><th>Net</th><th>Ending balance</th><th>Low P10</th></tr></thead><tbody></tbody></table>
+  </div>
+  <p class="note">$ millions. "Other out" is vendors, estimated tax, chargebacks and any unplanned payment, less interest received. Weekly balances end on Fridays, the weekly payout day, which is why each week's low point is usually its last day.</p>
+
+  <section>
+    <h2>Which forecasting method to trust</h2>
+    <p id="bt-lede"></p>
+    <div class="tablewrap">
+      <table id="models"><thead><tr><th>Method</th><th>Daily MAPE in</th><th>Daily MAPE out</th><th>Weekly MAPE in</th><th>Weekly MAPE out</th><th>Week-13 balance error</th></tr></thead><tbody></tbody></table>
+    </div>
+    <p class="note">Daily MAPE covers the first two weeks of each forecast; weekly MAPE covers all 13 weeks. Balance error is the mean absolute miss on cumulative net cash by week 13.</p>
+    <ul>
+      <li><strong>Seasonal naive</strong> (same weekday last week) breaks on every holiday and month end.</li>
+      <li><strong>Holt-Winters</strong> follows the level but cannot see payroll, tax dates or holiday pile-ups.</li>
+      <li><strong>Gradient boosting</strong> on total inflows and outflows learns the calendar and gets both totals within about 7%, but its inflow and outflow errors do not cancel, so the balance drifts.</li>
+      <li><strong>Driver-based</strong> forecasts card volume once, then derives receipts, payouts and chargebacks from it using the settlement rules. A volume miss moves both sides together, which is why its balance error is a fraction of the others'.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>How it works</h2>
+    <ul>
+      <li>Card volume is forecast by calendar day with gradient boosting on the ratio to its trailing 28-day level, so growth and seasonality (paydays, holidays, the November–December peak) carry through.</li>
+      <li>Volume settles T+1 on business days, so weekend and holiday volume piles onto the next business day. Daily merchants are paid a day after settlement; weekly merchants are paid in a Friday batch.</li>
+      <li>Payroll, vendor runs and estimated taxes come from the treasury calendar; interest uses last month's amount; unplanned payments are not forecast.</li>
+      <li>The P10–P90 band is σ·√(business days ahead), with σ fitted on backtest errors of cumulative net cash. <span id="cov"></span></li>
+    </ul>
+    <p class="note">All data is synthetic, generated with known settlement rules so each method can be checked against the truth. Built with AI-assisted coding (Claude); modeling choices, validation and review are my own.</p>
+  </section>
+</div>
+<script>
+const DATA=/*DATA*/null;
+const $=id=>document.getElementById(id);
+const fmt=v=>(v<0?"−":"")+"$"+Math.abs(v).toFixed(1)+"M";
+const fmtD=d=>new Date(d+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"});
+const f1=v=>(Math.abs(v)<0.05?0:v).toFixed(1);
+const pct=v=>(v*100).toFixed(1)+"%";
+const Z=1.2816, days=DATA.days, hist=DATA.history;
+const weeks=[...new Set(days.map(d=>d.week))];
+const wsel=$("adhoc-w");
+weeks.forEach(w=>{const o=document.createElement("option");o.value=w;o.textContent=w;wsel.appendChild(o)});
+wsel.value=4;
+const firstDayOfWeek={};days.forEach((d,i)=>{if(!(d.week in firstDayOfWeek))firstDayOfWeek[d.week]=i});
+
+function compute(){
+  const s=+$("vol").value/100, cbr=(+$("cb").value/100)/DATA.chargeback_rate, adhoc=+$("adhoc").value, aw=+wsel.value;
+  let bal=DATA.opening_balance; const out=[];
+  days.forEach((d,i)=>{
+    const rec=d.receipts+s*d.sens[0], pd=d.payout_daily+s*d.sens[1], pb=d.payout_batch+s*d.sens[2];
+    const cb=(d.chargebacks+s*d.sens[3])*cbr, un=(i===firstDayOfWeek[aw])?adhoc:0;
+    const net=rec+d.interest-pd-pb-cb-d.payroll-d.vendors-d.tax-un;
+    bal+=net; const band=Z*DATA.sigma*Math.sqrt(i+1);
+    out.push({date:d.date,week:d.week,rec,pay:pd+pb,payroll:d.payroll,other:d.vendors+d.tax+cb+un-d.interest,net,bal,p10:bal-band,p90:bal+band});
+  });
+  return out;
+}
+
+function chart(rows,buf){
+  const svg=$("chart"),W=680,H=330,L=48,R=10,T=12,B=30;
+  const all=[...hist.map(h=>h.balance),...rows.map(r=>r.p10),...rows.map(r=>r.p90),buf];
+  let lo=Math.min(...all),hi=Math.max(...all);const pad=(hi-lo)*.06;lo-=pad;hi+=pad;
+  const n=hist.length+rows.length, x=i=>L+(W-L-R)*i/(n-1), y=v=>T+(H-T-B)*(hi-v)/(hi-lo);
+  let g="";
+  const step=Math.max(5,Math.ceil((hi-lo)/6/5)*5);
+  for(let v=Math.ceil(lo/step)*step;v<=hi;v+=step){g+=`<line class="grid" x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}"/><text class="tick" x="${L-6}" y="${y(v)+4}" text-anchor="end">${v}</text>`}
+  rows.forEach((r,i)=>{if(i%10===0){const xi=x(hist.length+i);g+=`<text class="tick" x="${xi}" y="${H-10}" text-anchor="middle">${fmtD(r.date)}</text>`}});
+  const xo=x(hist.length-1);
+  g+=`<line class="grid" x1="${xo}" x2="${xo}" y1="${T}" y2="${H-B}" stroke-dasharray="3 3"/><text class="tick" x="${xo-4}" y="${T+10}" text-anchor="end">today</text>`;
+  const band=rows.map((r,i)=>`${x(hist.length+i)},${y(r.p90)}`).join(" ")+" "+rows.map((r,i)=>`${x(hist.length+i)},${y(r.p10)}`).reverse().join(" ");
+  g+=`<polygon points="${xo},${y(DATA.opening_balance)} ${band}" fill="var(--band)"/>`;
+  g+=`<line x1="${L}" x2="${W-R}" y1="${y(buf)}" y2="${y(buf)}" stroke="var(--buffer)" stroke-width="1.5" stroke-dasharray="6 4"/>`;
+  g+=`<polyline fill="none" stroke="var(--hist)" stroke-width="1.6" points="${hist.map((h,i)=>`${x(i)},${y(h.balance)}`).join(" ")}"/>`;
+  g+=`<polyline fill="none" stroke="var(--accent)" stroke-width="2" points="${xo},${y(DATA.opening_balance)} ${rows.map((r,i)=>`${x(hist.length+i)},${y(r.bal)}`).join(" ")}"/>`;
+  rows.forEach((r,i)=>{if(r.p10<buf)g+=`<circle cx="${x(hist.length+i)}" cy="${y(r.p10)}" r="2.6" fill="var(--warn)"/>`});
+  g+=`<line id="hair" y1="${T}" y2="${H-B}" stroke="var(--muted)" opacity="0"/><rect x="${L}" y="${T}" width="${W-L-R}" height="${H-T-B}" fill="transparent" id="hit"/>`;
+  svg.innerHTML=g;
+  const tip=$("tip"),hair=$("hair");
+  const move=ev=>{const pt=svg.getBoundingClientRect(),sx=(ev.clientX-pt.left)*W/pt.width;
+    let i=Math.round((sx-L)/(W-L-R)*(n-1));i=Math.max(0,Math.min(n-1,i));
+    const isF=i>=hist.length, r=isF?rows[i-hist.length]:hist[i];
+    hair.setAttribute("x1",x(i));hair.setAttribute("x2",x(i));hair.setAttribute("opacity",1);
+    tip.innerHTML=isF?`${fmtD(r.date)} · ${fmt(r.bal)}<br>P10 ${fmt(r.p10)} · P90 ${fmt(r.p90)}`:`${fmtD(r.date)} · actual ${fmt(r.balance)}`;
+    tip.style.opacity=1;const px=x(i)*pt.width/W;tip.style.left=Math.min(Math.max(px-70,0),pt.width-150)+"px";tip.style.top="44px"};
+  $("hit").addEventListener("pointermove",move);
+  $("hit").addEventListener("pointerleave",()=>{tip.style.opacity=0;hair.setAttribute("opacity",0)});
+}
+
+function render(){
+  $("vol-o").textContent=(+$("vol").value>0?"+":"")+$("vol").value+"%";
+  $("cb-o").textContent=(+$("cb").value).toFixed(2)+"%";
+  $("adhoc-o").textContent="$"+$("adhoc").value+"M";
+  const buf=+$("buf").value; $("buf-o").textContent="$"+buf+"M";
+  const rows=compute();
+  const low=rows.reduce((a,b)=>b.bal<a.bal?b:a), lowp=rows.reduce((a,b)=>b.p10<a.p10?b:a), last=rows[rows.length-1];
+  $("k-open").textContent=fmt(DATA.opening_balance); $("k-open-s").textContent="close of "+fmtD(DATA.origin);
+  $("k-low").textContent=fmt(low.bal); $("k-low-s").textContent=fmtD(low.date)+", week "+low.week;
+  $("k-p10").textContent=fmt(lowp.p10); $("k-p10-s").textContent=fmtD(lowp.date)+" · 1-in-10 downside";
+  $("k-end").textContent=fmt(last.bal); $("k-end-s").textContent="P10–P90 "+fmt(last.p10)+" to "+fmt(last.p90);
+  $("kpi-low").classList.toggle("bad",low.bal<buf); $("kpi-p10").classList.toggle("bad",lowp.p10<buf);
+  const breach=rows.filter(r=>r.p10<buf), st=$("status");
+  if(low.bal<buf){st.className="status bad";st.textContent=`Central forecast falls ${fmt(buf-low.bal)} below the buffer on ${fmtD(low.date)}. Line up at least ${fmt(buf-lowp.p10)} of funding before then.`}
+  else if(breach.length){st.className="status bad";st.textContent=`Central case holds, but on ${breach.length} day${breach.length>1?"s":""} the P10 dips below the buffer, first on ${fmtD(breach[0].date)}. Keep ${fmt(buf-lowp.p10)} of committed credit available.`}
+  else{st.className="status";st.textContent=`Even at P10 the balance stays ${fmt(lowp.p10-buf)} above the buffer. Low point: ${fmtD(lowp.date)}.`}
+  chart(rows,buf);
+  const tb=$("weekly").querySelector("tbody"); tb.innerHTML="";
+  weeks.forEach(w=>{const r=rows.filter(d=>d.week===w), e=r[r.length-1], sum=k=>r.reduce((a,b)=>a+b[k],0), lp=Math.min(...r.map(d=>d.p10));
+    const tr=document.createElement("tr"); if(lp<buf)tr.className="breach";
+    tr.innerHTML=`<td>${fmtD(e.date)}</td><td>${f1(sum("rec"))}</td><td>${f1(sum("pay"))}</td><td>${f1(sum("payroll"))}</td><td>${f1(sum("other"))}</td><td>${(sum("net")>=0?"+":"−")+Math.abs(sum("net")).toFixed(1)}</td><td>${e.bal.toFixed(1)}</td><td>${lp.toFixed(1)}</td>`;
+    tb.appendChild(tr)});
+}
+
+function models(){
+  const ms=DATA.models, keys=["daily_in","daily_out","weekly_in","weekly_out","balance_mae"];
+  const best={};keys.forEach(k=>best[k]=Math.min(...ms.map(m=>m[k])));
+  $("models").querySelector("tbody").innerHTML=ms.map(m=>`<tr><td>${m.model}</td>${keys.map(k=>`<td class="${m[k]===best[k]?"best":""}">${k==="balance_mae"?fmt(m[k]):pct(m[k])}</td>`).join("")}</tr>`).join("");
+  const nv=ms[0], dr=ms[ms.length-1];
+  $("bt-lede").textContent=`Each method forecast 13 weeks ahead from ${DATA.backtests} Fridays between July 2025 and July 2026, using only what was known on that day. The driver-based method cut weekly inflow error from ${pct(nv.weekly_in)} (seasonal naive) to ${pct(dr.weekly_in)} and the week-13 balance miss from ${fmt(nv.balance_mae)} to ${fmt(dr.balance_mae)}.`;
+  $("cov").textContent=`In the backtest, ${pct(DATA.band_coverage)} of actual balances fell inside the band (target 80%).`;
+}
+["vol","cb","adhoc","buf"].forEach(id=>$(id).addEventListener("input",render));
+wsel.addEventListener("change",render);
+$("reset").addEventListener("click",()=>{$("vol").value=0;$("cb").value=0.2;$("adhoc").value=0;$("buf").value=95;wsel.value=4;render()});
+models();render();
+</script>
+</body>
+</html>

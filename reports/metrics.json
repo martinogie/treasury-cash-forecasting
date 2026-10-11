@@ -1,0 +1,56 @@
+{
+  "scores": [
+    {
+      "model": "Seasonal naive",
+      "daily_mape_inflows": 0.2284358744968396,
+      "daily_mape_outflows": 0.3013761065179182,
+      "weekly_mape_inflows": 0.18247352364427188,
+      "weekly_mape_outflows": 0.09635907029258721,
+      "week13_balance_mae": 187360315.18281633
+    },
+    {
+      "model": "Holt-Winters",
+      "daily_mape_inflows": 0.13430488735028817,
+      "daily_mape_outflows": 0.21825265544565162,
+      "weekly_mape_inflows": 0.11906017114541766,
+      "weekly_mape_outflows": 0.11934430143856206,
+      "week13_balance_mae": 123021616.1236674
+    },
+    {
+      "model": "Gradient boosting",
+      "daily_mape_inflows": 0.05823509775314208,
+      "daily_mape_outflows": 0.10303550711662982,
+      "weekly_mape_inflows": 0.06629082841628309,
+      "weekly_mape_outflows": 0.07039886254617728,
+      "week13_balance_mae": 74084732.03647776
+    },
+    {
+      "model": "Driver-based",
+      "daily_mape_inflows": 0.05094194374027462,
+      "daily_mape_outflows": 0.04024881559786839,
+      "weekly_mape_inflows": 0.06325723906351706,
+      "weekly_mape_outflows": 0.061763525549276325,
+      "week13_balance_mae": 5171369.414561758
+    }
+  ],
+  "balance_band_sigma_per_sqrt_day": 1282929.797972767,
+  "p10_p90_coverage": 0.8272311212814645,
+  "origins": [
+    "2025-07-11",
+    "2025-08-08",
+    "2025-09-05",
+    "2025-10-03",
+    "2025-10-31",
+    "2025-11-28",
+    "2025-12-26",
+    "2026-01-23",
+    "2026-02-20",
+    "2026-03-20",
+    "2026-04-17",
+    "2026-05-15",
+    "2026-06-12",
+    "2026-07-10"
+  ],
+  "transactions_days": 940,
+  "runtime_seconds": 52.4
+}
